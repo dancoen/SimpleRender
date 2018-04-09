@@ -82,38 +82,30 @@ void render(void) {
 
 	for (int j = 0; j < objectlist.size(); j++) {
 		RenderObject obj = objectlist[j];
-		for (int i = 0; i < obj.polys.size(); i++) {
+		//for (int count = 0; count < obj.numpoints; count++) {
+		//	printf("vertex normal at %d is %f %f %f\n", count, obj.vertnorms[count].x, obj.vertnorms[count].y, obj.vertnorms[count].z);
+		//}
+		std::vector< std::list< vec3f > > vertexnormals(obj.points.size());	//keep track of all of the normals of faces each vertex is part of
+
+		for (int i = 0; i < obj.Faces.size(); i++) {
 			vec3f normal;
 			float result = 0;
-			vector<vec3f> points(obj.polys[i].size());  //temporary list of modelview-transformed points
-			vector<vec3f> temppoints(obj.polys[i].size());
-
-			//find normal of poly for back face culling
-			if (obj.polys[i].size() > 2) {
-				//find normal of this polygon - need two edges, using points 0-2
-				vec3f edge1 = vec3f(obj.points[obj.polys[i][1] - 1].x - obj.points[obj.polys[i][0] - 1].x, obj.points[obj.polys[i][1] - 1].y - obj.points[obj.polys[i][0] - 1].y, obj.points[obj.polys[i][1] - 1].z - obj.points[obj.polys[i][0] - 1].z);
-				vec3f edge2 = vec3f(obj.points[obj.polys[i][2] - 1].x - obj.points[obj.polys[i][0] - 1].x, obj.points[obj.polys[i][2] - 1].y - obj.points[obj.polys[i][0] - 1].y, obj.points[obj.polys[i][2] - 1].z - obj.points[obj.polys[i][0] - 1].z);
-				normal = crossproduct(edge2, edge1);
-				normal.normalize();
-				result = normal.dot(n);
-			}
-
-			//populate list of modelview points
-			if (result < 0) {													//if the normal of the poly is facing the camera or perpendicular, draw it - points are 1 indexed so subract one for their location in array
-				for (int j = 0; j < obj.polys[i].size(); j++) {
-					vec3f p = vec3f(obj.points[obj.polys[i][j] - 1].x, obj.points[obj.polys[i][j] - 1].y, obj.points[obj.polys[i][j] - 1].z);
-					p = matrixmultvec(ModelView, p);			//multiply by modelview matrix (make a function for this)
+			result = obj.Faces[i].normal.dot(n);
+			for (int k = 0; k < obj.Faces[i].points.size(); k++) {
+				//printf("vertex for face %d at vertex %d is %f %f %f\n", i, k, obj.Faces[i].vertnorms[k].x, obj.Faces[i].vertnorms[k].y, obj.Faces[i].vertnorms[k].z);
+				if (result <= 0) {
+					vec3f p = { obj.points[obj.Faces[i].points[k] - 1].x, obj.points[obj.Faces[i].points[k] - 1].y, obj.points[obj.Faces[i].points[k] - 1].z };
+					p = matrixmultvec(ModelView, p);			
 					p = matrixmultvec(Perspective, p);
 					//for scan convert
-					temppoints[j] = p;
 					p.x = p.x / p.z;
 					p.x = (reswidth / 2.) + (reswidth * p.x) / 2.;
 					p.y = p.y / p.z;
 					p.y = (resheight / 2.) + (resheight * p.y) / 2.;
-					points[j] = p;
+					obj.Faces[i].screencords[k] = p;
+					float y_min = ET.FillTable(&obj.Faces[i]);
+					Polyfill(&drawbuffer, &ET, y_min);
 				}
-				float y_min = ET.FillTable(&points);
-				Polyfill(&drawbuffer, &ET, y_min);
 			}
 		}
 	}
@@ -137,6 +129,7 @@ void render(void) {
 	// swap buffers
 	glutSwapBuffers();
 }
+
 
 void mousemove(int x, int y) {		// when mouse is moved, detect what quadrant it is (top/bottom 3rd or right or left 3rd of screen) and adjust camera x and y
 	if (x < reswidth / 3) {
@@ -221,8 +214,8 @@ void init() {
 	//obj1.Translate({ -5, 5, 35 });
 	//obj1.Rotate({ (float)PI/4., 0, 0 });
 	//objectlist.push_back(obj1);
-	RenderObject obj2 = ParseObj("house.d.txt");
-	//obj2.Scale(5);
+	RenderObject obj2 = ParseObj("car.d.txt");
+	obj2.Scale(5);
 	objectlist.push_back(obj2);
 }
 

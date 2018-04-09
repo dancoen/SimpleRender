@@ -105,7 +105,7 @@ vec3f matrixmultvec(Matrix a, vec3f b) {
 }
 
 struct pixel {
-	vec3f color; // declares a new (incomplete) struct type named listNode
+	vec3f color;
 	float z;
 	bool set = false;
 };

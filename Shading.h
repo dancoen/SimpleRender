@@ -11,8 +11,13 @@
 
 Flat:
 constant across face
--normal of face
+-just need normal of face to use for all pixels in polygon
 
 Gauraud:
+interpolate COLOR across face 
+-need vertex normals
 
 Phong:
+-interpolate NORMAL across face to determine color
+-need vertex normals
+

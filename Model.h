@@ -11,6 +11,9 @@
 class Face {
 public:
 	std::vector<int> points;
+	std::vector<vec3f> screencords;
+	std::vector<vec3f> vertnorms;
+	vec3f normal;
 	vec3f color;				//color of face
 	float ks, kd, ka, alpha;	//specular, diffuse, ambient, shininess(alpha)
 };
@@ -18,13 +21,13 @@ public:
 class RenderObject {
 public:
 	int numpoints;
-	int numpolys;
+	int numfaces;
 	vec3f location;									
 	std::vector<vec3f> points;						//point data
 	std::vector<std::vector<int>> polys;			//each polygon index list
 	std::vector<Face> Faces;
+	std::vector<vec3f> vertnorms;
 	vec3f orientation;
-	//Matrix modelmat;
 	vec3f color;				//color of face
 	float ks, kd, ka, alpha;	//specular, diffuse, ambient, shininess(alpha)
 
@@ -76,9 +79,10 @@ RenderObject ParseObj(char *path) {
 
 	RenderObject obj;
 	char lineHeader[128];
-	int res = fscanf(objfile, "%s %d %d", lineHeader, &obj.numpoints, &obj.numpolys);
-	obj.points = std::vector<vec3f>(obj.numpoints);
-	obj.polys = std::vector<std::vector<int>>(obj.numpolys);
+	int res = fscanf(objfile, "%s %d %d", lineHeader, &obj.numpoints, &obj.numfaces);
+	obj.points.resize(obj.numpoints);
+	obj.Faces.resize(obj.numfaces);
+	obj.vertnorms.resize(obj.numpoints);
 	int i = 0;
 	for (i = 0; i < obj.numpoints; i++) {
 		res = fscanf(objfile, "%f %f %f\n", &obj.points[i].x, &obj.points[i].y, &obj.points[i].z);		//scan the coordinates of a point
@@ -86,18 +90,53 @@ RenderObject ParseObj(char *path) {
 			break;												// EOF = End Of File. Quit the loop.
 	}
 
-	int polypoints = 0;											//number of points in the current polygon in a file line
+	int facepoints = 0;											//number of points in the current polygon in a file line
 	int tempindex;												//index of a point in one of the polygons in a line
 
-	for (i = 0; i < obj.numpolys; i++) {							//loop scanning for the number of indices in every polygon (each line)
-		res = fscanf(objfile, "%d", &polypoints);
+	std::vector< std::list< vec3f > > vertexnormals(obj.points.size());				//vector of lists of face normals of each polygon
+
+	for (i = 0; i < obj.numfaces; i++) {							//loop scanning for the number of indices in every polygon (each line)
+		res = fscanf(objfile, "%d", &facepoints);
 		if (res == EOF)
 			break;												// EOF = End Of File. Quit the loop.
-		for (int j = 0; j < polypoints; j++) {
+		obj.Faces[i].screencords.resize(facepoints);
+		obj.Faces[i].vertnorms.resize(facepoints);
+		for (int j = 0; j < facepoints; j++) {
 			fscanf(objfile, "%d", &tempindex);
-			obj.polys[i].push_back(tempindex);					//append index to polygon vector
+			obj.Faces[i].points.push_back(tempindex);					//append index to polygon vector
+			obj.Faces[i].color = { ((float)rand() / (RAND_MAX)), ((float)rand() / (RAND_MAX)), ((float)rand() / (RAND_MAX)) };
+			obj.Faces[i].ks = .2;
+			obj.Faces[i].kd = .2;
+			obj.Faces[i].ks = .2;
+			obj.Faces[i].alpha = .2;
+		}
+		vec3f edge1 = vec3f(obj.points[obj.Faces[i].points[1] - 1].x - obj.points[obj.Faces[i].points[0] - 1].x, obj.points[obj.Faces[i].points[1] - 1].y - obj.points[obj.Faces[i].points[0] - 1].y, obj.points[obj.Faces[i].points[1] - 1].z - obj.points[obj.Faces[i].points[0] - 1].z);
+		vec3f edge2 = vec3f(obj.points[obj.Faces[i].points[2] - 1].x - obj.points[obj.Faces[i].points[0] - 1].x, obj.points[obj.Faces[i].points[2] - 1].y - obj.points[obj.Faces[i].points[0] - 1].y, obj.points[obj.Faces[i].points[2] - 1].z - obj.points[obj.Faces[i].points[0] - 1].z);
+		obj.Faces[i].normal = crossproduct(edge2, edge1);
+		obj.Faces[i].normal.normalize();
+		for (int j = 0; j < facepoints; j++) {
+			vertexnormals[obj.Faces[i].points[j] - 1].push_back(obj.Faces[i].normal);
 		}
 	}
+
+	for (int i = 0; i < obj.numpoints; i++) {
+		vec3f tempnormal;
+		float tempcount = 0.;
+		for (std::list<vec3f>::iterator it = vertexnormals[i].begin(); it != vertexnormals[i].end(); it++) {
+			tempnormal.x += it->x;
+			tempnormal.y += it->y;
+			tempnormal.z += it->z;
+			tempcount++;
+		}
+		obj.vertnorms[i] = { tempnormal.x / tempcount, tempnormal.y / tempcount, tempnormal.z / tempcount };		//average the normals for vertex normal
+	}
+	
+	for (int i = 0; i < obj.numfaces; i++) {
+		for (int j = 0; j < obj.Faces[i].points.size(); j++) {
+			obj.Faces[i].vertnorms[j] = obj.vertnorms[obj.Faces[i].points[j] - 1];
+		}
+	}
+
 	return obj;
 }
 
