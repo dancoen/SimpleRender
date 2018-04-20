@@ -39,44 +39,6 @@ public:
 };
 
 
-/*float EdgeTable::FillTable(vector<vec3f> *points) {					//do this for pixel-point array of each polygon - returns ymin of edges
-	float y_min = 600;
-	bool horizontal = true;
-	vec3f coordinates;
-	float y_upper = 0.;
-	float y_lower = 0.;				//where to store the edge in list
-	float xinc = 0;
-	float zinc = 0;
-	for (int j = 0; j < points->size(); j++) {
-		vec3f p1 = (*points)[j];
-		vec3f p2 = (*points)[(j + 1) % points->size()];
-		horizontal = (int(p1.y) == int(p2.y));
-		if (p1.y > p2.y) {
-			coordinates = { p2.x, p2.y, p2.z };
-			y_upper = p1.y;
-			y_lower = p2.y;
-			xinc = (p1.x - p2.x) / (p1.y - p2.y);
-			zinc = (p1.z - p2.z) / (p1.y - p2.y);
-		}
-		else if (p2.y > p1.y) {
-			coordinates = { p1.x, p1.y, p1.z };
-			y_upper = p2.y;
-			y_lower = p1.y;
-			xinc = (p2.x - p1.x) / (p2.y - p1.y);
-			zinc = (p2.z - p1.z) / (p2.y - p1.y);
-		}
-		if (!horizontal) {
-			if (y_lower < y_min) y_min = y_lower;
-			Edge e = Edge(coordinates, xinc, zinc, y_upper);
-			if (y_lower > 0. && y_lower < 600) {
-				Table[int(y_lower)].push_back(e);
-			}
-		}
-	}
-	return (y_min);
-}
-*/
-
 float EdgeTable::FillTable(Face *face) {					//do this for pixel-point array of each polygon - returns ymin of edges
 	float y_min = 600;
 	bool horizontal = true;
